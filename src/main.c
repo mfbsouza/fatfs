@@ -1,28 +1,40 @@
 #include <stdio.h>
+#include <assert.h>
+#include <stdlib.h>
 
 #include "fatfs.h"
 
 int main(int argc, char** argv)
 {
+	FILE* disk = NULL;
+	struct mbr_sector* disk_mbr = NULL;
+	int red, err;
+
 	if (argc < 2) {
 		printf("Syntax: %s <disk image>\n", argv[0]);
 		return -1;
 	}
 
-	FILE* disk = fopen(argv[1], "rb");
-	if (!disk) {
-		fprintf(stderr, "Cannot open disk image %s!\n", argv[1]);
-		return -1;
-	}
+	// opening disk
+	disk = fopen(argv[1], "rb");
+	assert(disk != NULL);
+	
+	// read the mbr sector
+	disk_mbr = (struct mbr_sector*) malloc(sizeof(struct mbr_sector));
+	red = read_mbr(disk_mbr, disk);
+	assert(red > 0);
 
-	struct mbr_sector mbr;
-	if (!read_boot_sector(&mbr, disk)) {
-		fprintf(stderr, "Cannor read boot sector!\n");
-		return -1;
-	}
+	// check if it's a valid boot record sector
+	err = validate_mbr(disk_mbr);
+	assert(!err);
+	
+	// print mbr info
+	print_mbr_info(disk_mbr);
 
-	printf("parition 1 type: %x\n", mbr.pt_entry[0].type);
+	// free mbr sector
+	free(disk_mbr);
 
+	// closing disk
 	fclose(disk);
 
 	return 0;

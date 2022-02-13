@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#define MAX_MBR_PARTITIONS 4
+
 struct partition_table_entry {
 	uint8_t drive_attr;
 	uint8_t start_chs_addr[3];
@@ -19,6 +21,9 @@ struct mbr_sector {
 	uint8_t signature[2];
 } __attribute__((packed));
 
-size_t read_boot_sector(struct mbr_sector*, FILE*);
+size_t read_mbr(struct mbr_sector*, FILE*);
+int validate_mbr(struct mbr_sector*);
+int count_partitions(struct mbr_sector*);
+void print_mbr_info(struct mbr_sector*);
 
 #endif /* __FATFS_H__ */
