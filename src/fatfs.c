@@ -5,6 +5,18 @@ size_t read_mbr(struct mbr_sector* buf, FILE* disk)
 	return fread(buf, sizeof(struct mbr_sector), 1, disk);
 }
 
+size_t read_fat_vbr(struct fat_vbr_sector* buf, const int offset, FILE* disk)
+{
+	fseek(disk, offset, SEEK_SET);
+	return fread(buf, sizeof(struct fat_vbr_sector), 1, disk);
+}
+
+size_t read_fat32_vbr(struct fat32_vbr_sector* buf, const int offset, FILE* disk)
+{
+	fseek(disk, offset, SEEK_SET);
+	return fread(buf, sizeof(struct fat32_vbr_sector), 1, disk);
+}
+
 int validate_mbr(struct mbr_sector* mbr)
 {
 	if (mbr->signature[0] == 0x55 && mbr->signature[1] == 0xaa) {
@@ -19,7 +31,7 @@ int count_partitions(struct mbr_sector* mbr)
 {
 	int i, cnt = 0;
 	for (i = 0; i < MAX_MBR_PARTITIONS; i++) {
-		if (mbr->pt_entry[i].type != 0) {
+		if (mbr->pt[i].type != 0) {
 			cnt++;
 		}
 	}
@@ -32,6 +44,7 @@ void print_mbr_info(struct mbr_sector* mbr)
 	cnt = count_partitions(mbr);
 	fprintf(stdout, "partitions on the disk: %d\n", cnt);
 	for (i = 0; i < cnt; i++) {
-		fprintf(stdout, "parition %d type: %2.x\n", i, mbr->pt_entry[i].type);
+		fprintf(stdout, "parition %d:\n\ttype: %02X\n", i, mbr->pt[i].type);
+		fprintf(stdout, "\tsize: %d sectors * 512 bytes = %dMB\n", mbr->pt[i].sectors_cnt, (mbr->pt[i].sectors_cnt * 512/1024)/1024);
 	}
 }
