@@ -7,10 +7,11 @@
 int main(int argc, char** argv)
 {
 	FILE* disk = NULL;
-	struct mbr_sector* disk_mbr = NULL;
-	struct fat_vbr_sector* part_vbr = NULL;
-	int red, err;
+	struct partition_table* pt = NULL;
+	struct fat_vbr_sector* vbr = NULL;
+	int err;
 
+	// check arguments given to the code
 	if (argc < 2) {
 		printf("Syntax: %s <disk image>\n", argv[0]);
 		return -1;
@@ -19,34 +20,30 @@ int main(int argc, char** argv)
 	// opening disk
 	disk = fopen(argv[1], "rb");
 	assert(disk != NULL);
-	
-	// read the mbr sector
-	disk_mbr = (struct mbr_sector*) malloc(sizeof(struct mbr_sector));
-	red = read_mbr(disk_mbr, disk);
-	assert(red > 0);
 
-	// check if it's a valid boot record sector
-	err = validate_mbr(disk_mbr);
+	// check if disk has a valid MBR sector
+	err = validate_mbr(disk);
 	assert(!err);
-	
-	// print mbr info
-	print_mbr_info(disk_mbr);
 
-	// try to read the vbr sector
-	part_vbr = (struct fat_vbr_sector*) malloc(sizeof(struct fat_vbr_sector)); 
-	red = read_fat_vbr(part_vbr, disk_mbr->pt[0].start_lba_addr * 512, disk);
-	assert(red > 0);
+	// load the partition tables to memory
+	pt = load_part_table(disk);
 
-	// try to print some vbr info
-	printf("OEM: %s\n", part_vbr->bpb.oem_id);
-	printf("sector count: %d\n", part_vbr->bpb.sector_cnt);
-	printf("large sector count: %d\n", part_vbr->bpb.large_sector_cnt);
+	// print partition table info
+	print_pt_info(stdout, pt);
+
+	// load VBR sector
+	vbr = (struct fat_vbr_sector*) load_sector(pt[0].start_lba_addr * SECTOR_SIZE, 1, disk);
+
+	// print VBR info
+	print_vbr_info(stdout, vbr, pt[0].type);
 
 	// free vbr sector
-	free(part_vbr);
-	// free mbr sector
-	free(disk_mbr);
-	// closing disk
+	free(vbr);
+
+	// free the partition tables
+	free(pt);
+
+	// close the disk
 	fclose(disk);
 
 	return 0;

@@ -3,8 +3,13 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #define MAX_MBR_PARTITIONS 4
+#define SECTOR_SIZE 512
+#define SIG_OFFSET 0x1FE
+#define PT_OFFSET 0x1BE
+#define EBR_OFFSET 0x024
 
 /* Sectors Headers */
 
@@ -90,11 +95,10 @@ struct fat32_vbr_sector {
 
 /* Functions */
 
-size_t read_mbr(struct mbr_sector*, FILE*);
-size_t read_fat_vbr(struct fat_vbr_sector*, const int, FILE*);
-size_t read_fat32_vbr(struct fat32_vbr_sector*, const int, FILE*);
-int validate_mbr(struct mbr_sector*);
-int count_partitions(struct mbr_sector*);
-void print_mbr_info(struct mbr_sector*);
+int validate_mbr(FILE*);
+void* load_sector(const int, const int, FILE*);
+struct partition_table* load_part_table(FILE*);
+void print_pt_info(FILE*, struct partition_table*);
+void print_vbr_info(FILE*, void*, const uint8_t);
 
 #endif /* __FATFS_H__ */
