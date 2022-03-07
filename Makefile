@@ -9,28 +9,28 @@ DBGDIR   := $(BUILDDIR)/debug
 RELDIR   := $(BUILDDIR)/release
 INCDIR   := ./include
 
+# compiler
+PREFIX :=
+CC     := $(PREFIX)gcc
+LD     := $(PREFIX)gcc
+OD     := $(PREFIX)objdump
 
-# compiler settings
-CC  := $(PREFIX)gcc
-LD  := $(PREFIX)gcc
-OD  := $(PREFIX)objdump
+# flags
+CFLAGS   := -std=c99 -Wall -I $(INCDIR) -MMD -MP
+LDFLAGS  :=
 
 ifeq ($(DEBUG),1)
 	BINDIR    := $(DBGDIR)
 	OBJDIR    := $(DBGDIR)/obj
-	ALLCFLAGS += -g -O0 -DDEBUG
+	CFLAGS    += -g -O0 -DDEBUG
 else
 	BINDIR    := $(RELDIR)
 	OBJDIR    := $(RELDIR)/obj
-	ALLCFLAGS += -g -O3
+	CFLAGS    += -g -O3
 endif
 
-# final compilation flags
-CFLAGS   := -std=c99 -Wall $(ALLCFLAGS) -MMD -MP
-LDFLAGS  := $(ALLLDFLAGS)
-
 # sources to compile
-ALLCSRCS   += $(shell find ./src ./include -type f -name *.c)
+ALLCSRCS += $(shell find ./src ./include -type f -name *.c)
 
 # sources settings
 CSRCS    := $(ALLCSRCS)
@@ -62,10 +62,10 @@ $(BINDIR):
 # target for c objects
 $(COBJS) : $(OBJDIR)/%.o : %.c
 ifeq ($(VERBOSE),1)
-	$(CC) -c $(CFLAGS) -I $(INCDIR) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
 else
 	@echo -e "[CC]\t$<"
-	@$(CC) -c $(CFLAGS) -I $(INCDIR) $< -o $@
+	@$(CC) -c $(CFLAGS) $< -o $@
 endif
 
 # target for ELF file
@@ -90,5 +90,5 @@ endif
 clean:
 	rm -rf $(BUILDDIR)
 
-# Include the dependency files, should be the last of the makefile
+# include the dependency files, should be the last of the makefile
 -include $(DEPS)
