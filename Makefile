@@ -7,45 +7,56 @@ PROJECT  := fatfs
 BUILDDIR := ./build
 DBGDIR   := $(BUILDDIR)/debug
 RELDIR   := $(BUILDDIR)/release
-INCDIR   := ./include
+INCDIR   := ./src
 
 # compiler
 PREFIX :=
 CC     := $(PREFIX)gcc
-LD     := $(PREFIX)gcc
+CXX    := $(PREFIX)g++
 OD     := $(PREFIX)objdump
 
 # flags
 CFLAGS   := -std=c99 -Wall -I $(INCDIR) -MMD -MP
+CXXLAGS  := -Wall -I $(INCDIR) -MMD -MP
 LDFLAGS  :=
 
 ifeq ($(DEBUG),1)
 	BINDIR    := $(DBGDIR)
 	OBJDIR    := $(DBGDIR)/obj
 	CFLAGS    += -g -O0 -DDEBUG
+	CXXFLAGS  += -g -O0 -DDEBUG
 else
 	BINDIR    := $(RELDIR)
 	OBJDIR    := $(RELDIR)/obj
-	CFLAGS    += -g -O3
+	CFLAGS    += -g -O3 -DNDEBUG
+	CXXFLAGS  += -g -O3 -DNDEBUG
 endif
 
 # sources to compile
-ALLCSRCS += $(shell find ./src ./include -type f -name *.c)
+ALLCSRCS   += $(shell find ./src -type f -name *.c)
+ALLCXXSRCS += $(shell find ./src -type f -name *.cpp)
 
-# sources settings
-CSRCS    := $(ALLCSRCS)
-SRCPATHS := $(sort $(dir $(CSRCS)))
+# set the linker to g++ if there is any c++ source code
+ifeq ($(ALLCXXSRCS),)
+	LD := $(PREFIX)gcc
+else
+	LD := $(PREFIX)g++
+endif
 
 # objects settings
-COBJS   := $(addprefix $(OBJDIR)/, $(notdir $(CSRCS:.c=.o)))
-OBJS    := $(COBJS)
+COBJS   := $(addprefix $(OBJDIR)/, $(notdir $(ALLCSRCS:.c=.o)))
+CXXOBJS := $(addprefix $(OBJDIR)/, $(notdir $(ALLCXXSRCS:.cpp=.o)))
+OBJS    := $(COBJS) $(CXXOBJS)
 DEPS    := $(OBJS:.o=.d)
 
 # paths where to search for sources
-VPATH   = $(SRCPATHS)
+SRCPATHS := $(sort $(dir $(ALLCSRCS)) $(dir $(ALLCXXSRCS)))
+VPATH     = $(SRCPATHS)
 
 # output
-OUTFILES := $(BINDIR)/$(PROJECT) $(BUILDDIR)/$(PROJECT).lst
+OUTFILES := \
+	    $(BINDIR)/$(PROJECT) \
+	    $(BUILDDIR)/$(PROJECT).lst
 
 # targets
 .PHONY: all clean
@@ -64,8 +75,17 @@ $(COBJS) : $(OBJDIR)/%.o : %.c
 ifeq ($(VERBOSE),1)
 	$(CC) -c $(CFLAGS) $< -o $@
 else
-	@echo -e "[CC]\t$<"
+	@echo -n "[CC]\t$<\n"
 	@$(CC) -c $(CFLAGS) $< -o $@
+endif
+
+# target for cpp objects
+$(CXXOBJS) : $(OBJDIR)/%.o : %.cpp
+ifeq ($(VERBOSE),1)
+	$(CXX) -c $(CXXFLAGS) $< -o $@
+else
+	@echo -n "[CXX]\t$<\n"
+	@$(CXX) -c $(CXXFLAGS) $< -o $@
 endif
 
 # target for ELF file
@@ -73,7 +93,7 @@ $(BINDIR)/$(PROJECT): $(OBJS)
 ifeq ($(VERBOSE),1)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@
 else
-	@echo -e "[LD]\t./$@"
+	@echo -n "[LD]\t./$@\n"
 	@$(LD) $(LDFLAGS) $(OBJS) -o $@
 endif
 
@@ -82,7 +102,7 @@ $(BUILDDIR)/$(PROJECT).lst: $(BINDIR)/$(PROJECT)
 ifeq ($(VERBOSE),1)
 	$(OD) -h -S $< > $@
 else
-	@echo -e "[OD]\t./$@"
+	@echo -n "[OD]\t./$@\n"
 	@$(OD) -h -S $< > $@
 endif
 

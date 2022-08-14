@@ -131,7 +131,13 @@ int fatfs_init(struct fatfs_t* ptr, const char* path)
 	// load bpb tables and populate partition types array
 	for (int i = 0; i < MAX_MBR_PARTITIONS; i++) {
 		if (ptr->pt[i].type != 0) {
-			ptr->bpb[i] = (struct bpb_table*) load_data(sizeof(struct bpb_table), ptr->pt[i].start_lba_addr * SECTOR_SIZE, 1, ptr->disk);
+			ptr->bpb[i] = (struct bpb_table*) 
+				load_data(
+						sizeof(struct bpb_table),
+						ptr->pt[i].start_lba_addr * SECTOR_SIZE,
+						1,
+						ptr->disk
+					);
 		}
 		ptr->types[i] = ptr->pt[i].type;
 	}
